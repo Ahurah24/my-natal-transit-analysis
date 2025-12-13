@@ -1,0 +1,29 @@
+{
+  "vedic_chart_data": {
+    "houses": {
+      "D1": {"AS": "Lib 04°", "SU": "Aqu 24°", "MO": "Pis 25°", "ME": "Aqu 10°", "VE": "Aqu 00°", "MA": "Pis 25°", "JU": "Ari 10°", "SA": "Ari 19°", "UR": "Cap 24°", "NE": "Cap 11°", "PL": "Sco 19°", "RA": "Can 07°", "KE": "Cap 07°"},
+      "D2": {"AS": "Leo 09°", "SU": "Can 19°", "MO": "Leo 21°", "ME": "Leo 21°", "VE": "Leo 00°", "MA": "Leo 21°", "JU": "Leo 20°", "SA": "Can 08°", "UR": "Leo 19°", "NE": "Can 23°", "PL": "Leo 08°", "RA": "Can 15°", "KE": "Can 15°"},
+      "D3": {"AS": "Lib 14°", "SU": "Lib 13°", "MO": "Sco 17°", "ME": "Gem 02°", "VE": "Aqu 00°", "MA": "Sco 16°", "JU": "Leo 00°", "SA": "Leo 27°", "UR": "Vir 14°", "NE": "Tau 05°", "PL": "Pis 27°", "RA": "Can 22°", "KE": "Cap 22°"},
+      "D4": {"AS": "Lib 19°", "SU": "Sco 08°", "MO": "Sag 12°", "ME": "Tau 13°", "VE": "Aqu 01°", "MA": "Sag 12°", "JU": "Can 11°", "SA": "Lib 16°", "UR": "Lib 08°", "NE": "Ari 17°", "PL": "Tau 16°", "RA": "Lib 00°", "KE": "Ari 00°"},
+      "D5": {"AS": "Ari 24°", "SU": "Lib 03°", "MO": "Sco 08°", "ME": "Aqu 24°", "VE": "Ari 01°", "MA": "Sco 07°", "JU": "Aqu 21°", "SA": "Gem 06°", "UR": "Sco 03°", "NE": "Vir 28°", "PL": "Cap 05°", "RA": "Vir 08°", "KE": "Vir 08°"},
+      "D6": {"AS": "Ari 29°", "SU": "Leo 27°", "MO": "Pis 04°", "ME": "Gem 05°", "VE": "Ari 01°", "MA": "Pis 03°", "JU": "Gem 01°", "SA": "Can 25°", "UR": "Aqu 28°", "NE": "Sag 10°", "PL": "Cap 24°", "RA": "Sco 15°", "KE": "Sco 15°"},
+      "D7": {"AS": "Sco 04°", "SU": "Can 22°", "MO": "Pis 00°", "ME": "Ari 16°", "VE": "Aqu 01°", "MA": "Aqu 28°", "JU": "Gem 12°", "SA": "Leo 14°", "UR": "Sag 22°", "NE": "Vir 22°", "PL": "Vir 13°", "RA": "Aqu 23°", "KE": "Leo 23°"},
+      "D8": {"AS": "Tau 09°", "SU": "Gem 16°", "MO": "Aqu 25°", "ME": "Aqu 27°", "VE": "Sag 02°", "MA": "Aqu 24°", "JU": "Gem 22°", "SA": "Vir 03°", "UR": "Lib 17°", "NE": "Can 04°", "PL": "Tau 02°", "RA": "Gem 00°", "KE": "Gem 00°"},
+      "D9": {"AS": "Sco 14°", "SU": "Tau 11°", "MO": "Aqu 21°", "ME": "Cap 08°", "VE": "Lib 02°", "MA": "Aqu 19°", "JU": "Can 02°", "SA": "Vir 23°", "UR": "Leo 12°", "NE": "Ari 15°", "PL": "Sag 21°", "RA": "Vir 08°", "KE": "Pis 08°"},
+      "D10": {"AS": "Sco 19°", "SU": "Lib 06°", "MO": "Can 17°", "ME": "Tau 19°", "VE": "Aqu 02°", "MA": "Can 15°", "JU": "Can 13°", "SA": "Lib 12°", "UR": "Tau 07°", "NE": "Sag 27°", "PL": "Cap 10°", "RA": "Tau 16°", "KE": "Sco 16°"},
+      "D11": {"AS": "Sco 24°", "SU": "Pis 00°", "MO": "Aqu 13°", "ME": "Lib 00°", "VE": "Gem 03°", "MA": "Aqu 10°", "JU": "Can 23°", "SA": "Sco 01°", "UR": "Ari 01°", "NE": "Sco 09°", "PL": "Pis 29°", "RA": "Pis 23°", "KE": "Vir 23°"},
+      "D12": {"AS": "Sco 29°", "SU": "Sco 25°", "MO": "Cap 08°", "ME": "Gem 11°", "VE": "Aqu 03°", "MA": "Cap 06°", "JU": "Leo 03°", "SA": "Sco 20°", "UR": "Lib 26°", "NE": "Tau 21°", "PL": "Gem 18°", "RA": "Lib 01°", "KE": "Ari 01°"},
+      "D16": {"AS": "Gem 19°", "SU": "Vir 03°", "MO": "Cap 21°", "ME": "Cap 24°", "VE": "Leo 04°", "MA": "Cap 18°", "JU": "Vir 15°", "SA": "Aqu 07°", "UR": "Tau 05°", "NE": "Lib 08°", "PL": "Gem 04°", "RA": "Leo 01°", "KE": "Leo 01°"},
+      "D20": {"AS": "Can 09°", "SU": "Ari 12°", "MO": "Cap 04°", "ME": "Can 08°", "VE": "Sag 05°", "MA": "Cap 00°", "JU": "Lib 26°", "SA": "Ari 24°", "UR": "Leo 14°", "NE": "Sco 25°", "PL": "Sag 20°", "RA": "Vir 02°", "KE": "Vir 02°"},
+      "D24": {"AS": "Sco 29°", "SU": "Pis 20°", "MO": "Pis 17°", "ME": "Ari 22°", "VE": "Leo 06°", "MA": "Pis 12°", "JU": "Ari 07°", "SA": "Sco 11°", "UR": "Aqu 23°", "NE": "Ari 12°", "PL": "Lib 06°", "RA": "Cap 02°", "KE": "Cap 02°"},
+      "D27": {"AS": "Aqu 14°", "SU": "Leo 04°", "MO": "Sag 04°", "ME": "Can 24°", "VE": "Lib 07°", "MA": "Sco 29°", "JU": "Cap 08°", "SA": "Vir 09°", "UR": "Tau 07°", "NE": "Tau 17°", "PL": "Gem 03°", "RA": "Can 25°", "KE": "Cap 25°"},
+      "D30": {"AS": "Ari 29°", "SU": "Gem 18°", "MO": "Sco 21°", "ME": "Sag 27°", "VE": "Ari 08°", "MA": "Sco 16°", "JU": "Sag 09°", "SA": "Gem 06°", "UR": "Cap 21°", "NE": "Vir 22°", "PL": "Pis 00°", "RA": "Vir 18°", "KE": "Vir 18°"},
+      "D40": {"AS": "Lib 19°", "SU": "Sag 24°", "MO": "Leo 09°", "ME": "Gem 16°", "VE": "Ari 11°", "MA": "Leo 01°", "JU": "Tau 23°", "SA": "Tau 19°", "UR": "Gem 28°", "NE": "Cap 20°", "PL": "Sco 11°", "RA": "Leo 04°", "KE": "Leo 04°"},
+      "D45": {"AS": "Sco 13°", "SU": "Leo 27°", "MO": "Aqu 17°", "ME": "Sag 11°", "VE": "Leo 12°", "MA": "Aqu 09°", "JU": "Can 14°", "SA": "Leo 25°", "UR": "Tau 01°", "NE": "Vir 18°", "PL": "Sag 16°", "RA": "Pis 13°", "KE": "Pis 13°"},
+      "D60": {"AS": "Can 28°", "SU": "Pis 06°", "MO": "Gem 13°", "ME": "Sco 25°", "VE": "Aqu 17°", "MA": "Gem 02°", "JU": "Sag 19°", "SA": "Gem 13°", "UR": "Aqu 12°", "NE": "Sag 15°", "PL": "Cap 01°", "RA": "Lib 07°", "KE": "Ari 07°"},
+      "D81": {"AS": "Sco 13°", "SU": "Ari 13°", "MO": "Ari 14°", "ME": "Pis 14°", "VE": "Lib 23°", "MA": "Pis 28°", "JU": "Can 26°", "SA": "Can 27°", "UR": "Can 21°", "NE": "Leo 21°", "PL": "Lib 11°", "RA": "Pis 17°", "KE": "Vir 17°"},
+      "D108": {"AS": "Ari 27°", "SU": "Vir 17°", "MO": "Lib 19°", "ME": "Ari 09°", "VE": "Sco 00°", "MA": "Vir 28°", "JU": "Leo 05°", "SA": "Gem 06°", "UR": "Sag 28°", "NE": "Lib 09°", "PL": "Leo 15°", "RA": "Sag 13°", "KE": "Gem 13°"},
+      "D144": {"AS": "Lib 26°", "SU": "Vir 03°", "MO": "Ari 15°", "ME": "Lib 12°", "VE": "Pis 10°", "MA": "Pis 17°", "JU": "Vir 17°", "SA": "Can 08°", "UR": "Leo 18°", "NE": "Cap 12°", "PL": "Cap 10°", "RA": "Lib 17°", "KE": "Ari 17°"}
+    }
+  }
+}
