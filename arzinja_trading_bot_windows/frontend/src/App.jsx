@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Activity, ArrowDownUp, Bot, ChartNoAxesCombined, CircleAlert, Clock3, Gauge, LayoutDashboard, LockKeyhole, RefreshCw, Settings2, ShieldCheck, Wallet, Search } from "lucide-react";
 
 const API = "http://127.0.0.1:8000";
+const SCAN_INTERVAL_MS = 60_000;
 
 function Metric({ icon: Icon, label, value, hint }) {
   return <article className="metric">
@@ -10,13 +11,77 @@ function Metric({ icon: Icon, label, value, hint }) {
   </article>;
 }
 
+function formatCount(value) {
+  return Number(value || 0).toLocaleString("fa-IR");
+}
+
+function formatAmount(value) {
+  return Number(value || 0).toLocaleString("en-US", { maximumFractionDigits: 4 });
+}
+
 export default function App() {
   const [status, setStatus] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [exchangeConnected, setExchangeConnected] = useState(false);
+  const [marketCounts, setMarketCounts] = useState({ total: 0, active: 0 });
+  const [paper, setPaper] = useState({ total_trades: 0, open_positions: 0, realized_net_pnl: 0 });
   const [lastUpdate, setLastUpdate] = useState("—");
   const [scan, setScan] = useState([]);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState("");
+  const scanInFlight = useRef(false);
+
+  const runScan = useCallback(async () => {
+    if (scanInFlight.current) return;
+    scanInFlight.current = true;
+    setScanLoading(true);
+    setScanError("");
+
+    const results = await Promise.allSettled([
+      fetch(`${API}/api/exchange/markets`).then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || "خطا در دریافت فهرست بازارها");
+        return data;
+      }),
+      fetch(`${API}/api/exchange/scan?max_markets=24&max_spread_percent=0.8`).then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || "خطا در اسکن بازارها");
+        return data;
+      }),
+      fetch(`${API}/api/status`).then(async (r) => {
+        if (!r.ok) throw new Error("خطا در وضعیت Backend");
+        return r.json();
+      }),
+      fetch(`${API}/api/paper/summary`).then(async (r) => {
+        if (!r.ok) throw new Error("خطا در دفتر معاملات آزمایشی");
+        return r.json();
+      }),
+    ]);
+
+    const [marketsResult, scanResult, statusResult, paperResult] = results;
+    if (marketsResult.status === "fulfilled") {
+      setMarketCounts({
+        total: marketsResult.value.total_p2p_markets || 0,
+        active: marketsResult.value.active_p2p_markets || 0,
+      });
+      setExchangeConnected(true);
+    } else {
+      setExchangeConnected(false);
+    }
+
+    if (scanResult.status === "fulfilled") {
+      setScan(scanResult.value.results || []);
+    } else {
+      setScanError(scanResult.reason?.message || "خطای نامشخص هنگام اسکن");
+    }
+
+    if (statusResult.status === "fulfilled") setStatus(statusResult.value);
+    if (paperResult.status === "fulfilled") setPaper(paperResult.value);
+
+    setLastUpdate(new Date().toLocaleTimeString("fa-IR"));
+    scanInFlight.current = false;
+    setScanLoading(false);
+  }, []);
 
   useEffect(() => {
     let socket;
@@ -27,7 +92,7 @@ export default function App() {
       socket.onopen = () => alive && setConnected(true);
       socket.onmessage = (event) => {
         if (!alive) return;
-        try { setStatus(JSON.parse(event.data)); setLastUpdate(new Date().toLocaleTimeString("fa-IR")); } catch {}
+        try { setStatus(JSON.parse(event.data)); } catch {}
       };
       socket.onclose = () => {
         if (!alive) return;
@@ -40,24 +105,13 @@ export default function App() {
     return () => { alive = false; clearTimeout(retry); socket?.close(); };
   }, []);
 
-  const runScan = async () => {
-    setScanLoading(true); setScanError("");
-    try {
-      const response = await fetch(`${API}/api/exchange/scan?max_markets=40&max_spread_percent=0.8`);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "خطا در دریافت بازارها");
-      setScan(data.results || []);
-    } catch (error) { setScanError(error.message); }
-    finally { setScanLoading(false); }
-  };
+  useEffect(() => {
+    runScan();
+    const interval = setInterval(runScan, SCAN_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [runScan]);
 
-  const refresh = async () => {
-    try {
-      const response = await fetch(`${API}/api/status`);
-      setStatus(await response.json());
-      setLastUpdate(new Date().toLocaleTimeString("fa-IR"));
-    } catch { setConnected(false); }
-  };
+  const refresh = () => runScan();
 
   return <div className="shell">
     <aside className="sidebar">
@@ -74,56 +128,58 @@ export default function App() {
     <main className="main">
       <header className="topbar">
         <div><div className="eyebrow">پنل مدیریت ربات</div><h1>داشبورد معاملاتی</h1></div>
-        <div className="top-actions"><span className={connected ? "connection online" : "connection"}><i/>{connected ? "اتصال به سرور برقرار" : "در انتظار اتصال"}</span><button className="icon-btn" onClick={refresh} title="بروزرسانی"><RefreshCw size={17}/></button></div>
+        <div className="top-actions"><span className={connected ? "connection online" : "connection"}><i/>{connected ? "ارتباط زنده با Backend" : "در انتظار اتصال Backend"}</span><button className="icon-btn" onClick={refresh} disabled={scanLoading} title="بروزرسانی">{scanLoading ? "…" : <RefreshCw size={17}/>}</button></div>
       </header>
 
       <section className="welcome">
-        <div><span className="pill"><Activity size={14}/> وضعیت سیستم</span><h2>به پنل ربات ارزینجا خوش آمدی</h2><p>زیرساخت ویندوزی آماده راه‌اندازی است. دریافت بازار و تاریخچه کندل به API محلی متصل شده؛ اعتبارسنجی زنده دفتر سفارش و احراز هویت خصوصی باقی مانده است.</p></div>
+        <div><span className="pill"><Activity size={14}/> پایش خودکار بازار</span><h2>به پنل ربات ارزینجا خوش آمدی</h2><p>بازارهای فعال Advanced Trade به‌صورت خودکار هر ۶۰ ثانیه اسکن می‌شوند. این نسخه فقط داده عمومی را می‌خواند و هیچ سفارش واقعی ارسال نمی‌کند.</p></div>
         <div className="welcome-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="orb-core"><Bot size={36}/></div></div>
       </section>
 
       <section className="metrics">
-        <Metric icon={Wallet} label="ارزش کل دارایی" value="—" hint="پس از اتصال امن به حساب" />
-        <Metric icon={ChartNoAxesCombined} label="سود و زیان امروز" value="—" hint="هنوز معامله‌ای ثبت نشده" />
-        <Metric icon={ArrowDownUp} label="معاملات فعال" value="۰" hint="اجرای واقعی غیرفعال است" />
-        <Metric icon={Gauge} label="وضعیت استراتژی" value="متوقف" hint="منتظر اتصال داده بازار" />
+        <Metric icon={Search} label="بازارهای فعال P2P" value={`${formatCount(marketCounts.active)} / ${formatCount(marketCounts.total)}`} hint={exchangeConnected ? "دریافت از API آذرینجا" : "اتصال به API برقرار نیست"} />
+        <Metric icon={ChartNoAxesCombined} label="بازارهای واجد فیلتر" value={formatCount(scan.length)} hint="اسپرد حداکثر ۰٫۸٪" />
+        <Metric icon={ArrowDownUp} label="موقعیت‌های Paper باز" value={formatCount(paper.open_positions)} hint={`${formatCount(paper.total_trades)} معامله ثبت‌شده در کل`} />
+        <Metric icon={Wallet} label="سود و زیان تحقق‌یافته" value={formatAmount(paper.realized_net_pnl)} hint="بر اساس دفتر معاملات آزمایشی" />
       </section>
 
       <section className="panel roadmap">
-        <div className="panel-head"><div><h3><Search size={17}/> اسکن بازارهای فعال Advanced Trade</h3><p>بازارهای فعال P2P؛ کارمزد Maker/Taker در تنظیمات Advanced Trade صفر است</p></div><button className="icon-btn" onClick={runScan} disabled={scanLoading} title="شروع اسکن">{scanLoading ? "…" : <RefreshCw size={17}/>}</button></div>
+        <div className="panel-head"><div><h3><Search size={17}/> اسکن خودکار بازارهای Advanced Trade</h3><p>اسکن کامل بازارهای فعال P2P؛ Maker/Taker در شبیه‌سازی صفر، اسپرد و لغزش همچنان هزینه‌اند</p></div><button className="icon-btn" onClick={refresh} disabled={scanLoading} title="شروع اسکن">{scanLoading ? "…" : <RefreshCw size={17}/>}</button></div>
         {scanError && <div className="notice"><CircleAlert size={17}/><span>{scanError}</span></div>}
-        {scan.length === 0 ? <p className="muted">برای دریافت فهرست، اسکن را اجرا کن. خالی بودن نتیجه به معنی نبود بازار واجد شرایط یا خطای اتصال است.</p> : <div className="status-list">{scan.map((item) => <div key={item.pair}><span><b>{item.pair}</b> · اسپرد {item.spread_percent}%</span><b className="ok">عمق {Number(item.liquidity_score).toLocaleString("en-US")}</b></div>)}</div>}
+        {scan.length === 0 ? <p className="muted">{scanLoading ? "در حال دریافت دفتر سفارش‌های بازارها..." : "در حال حاضر بازاری از فیلتر عبور نکرده یا اسکن با خطا روبه‌رو شده است."}</p> : <div className="status-list">{scan.map((item) => <div key={item.pair}><span><b>{item.pair}</b> · اسپرد {item.spread_percent}%</span><b className="ok">عمق {formatAmount(item.liquidity_score)}</b></div>)}</div>}
+        <p className="muted">آخرین بررسی: {lastUpdate} · بروزرسانی خودکار هر ۶۰ ثانیه</p>
       </section>
 
       <section className="grid-two">
         <article className="panel">
           <div className="panel-head"><div><h3>وضعیت اجرا</h3><p>اطلاعات زنده از سرویس محلی</p></div><span className="live-dot">LIVE</span></div>
           <div className="status-list">
-            <div><span>سرور FastAPI</span><b className="ok">فعال</b></div>
+            <div><span>سرور FastAPI</span><b className="ok">{status?.status === "ready" ? "فعال" : "در حال بررسی"}</b></div>
             <div><span>ارتباط زنده داشبورد</span><b className={connected ? "ok" : "warn"}>{connected ? "متصل" : "قطع"}</b></div>
-            <div><span>حالت معاملاتی</span><b className="warn">{status?.mode === "live" ? "واقعی" : "آزمایشی"}</b></div>
-            <div><span>اتصال به ارزینجا</span><b className="muted">بررسی‌نشده</b></div>
+            <div><span>دریافت داده از ارزینجا</span><b className={exchangeConnected ? "ok" : "warn"}>{exchangeConnected ? "متصل" : "قطع یا نامشخص"}</b></div>
+            <div><span>حالت معاملاتی</span><b className="warn">Paper Trading</b></div>
+            <div><span>موتور استراتژی</span><b className="muted">هنوز فعال نشده</b></div>
             <div><span>آخرین بروزرسانی</span><b className="muted">{lastUpdate}</b></div>
           </div>
         </article>
         <article className="panel safety">
           <div className="panel-head"><div><h3><LockKeyhole size={17}/> ایمنی معاملات</h3><p>محافظت از سرمایه در زمان توسعه</p></div></div>
-          <div className="safety-state"><div className="safe-icon"><ShieldCheck size={25}/></div><div><b>معاملات واقعی غیرفعال</b><small>تا زمان تأیید API، داده بازار، مدیریت ریسک و اجرای سفارش</small></div></div>
-          <div className="notice"><CircleAlert size={17}/><span>{status?.notice || "در حال دریافت وضعیت سرویس محلی..."}</span></div>
+          <div className="safety-state"><div className="safe-icon"><ShieldCheck size={25}/></div><div><b>معاملات واقعی غیرفعال</b><small>حالت Paper قفل است؛ هیچ سفارش واقعی ارسال نمی‌شود</small></div></div>
+          <div className="notice"><CircleAlert size={17}/><span>{status?.notice || "وضعیت سرویس محلی در حال دریافت است."}</span></div>
         </article>
       </section>
 
       <section className="panel roadmap">
-        <div className="panel-head"><div><h3>مراحل آماده‌سازی</h3><p>مسیر توسعه نسخه ویندوز</p></div><span className="step-count">مرحله ۲ از ۵</span></div>
+        <div className="panel-head"><div><h3>مراحل آماده‌سازی</h3><p>مسیر توسعه نسخه ویندوز</p></div><span className="step-count">مرحله ۳ از ۵</span></div>
         <div className="steps">
           <div className="step done"><i>✓</i><span>ساختار وب و API محلی</span></div>
-          <div className="step current"><i>۲</i><span>یکپارچه‌سازی API ارزینجا</span></div>
-          <div className="step"><i>۳</i><span>انتقال استراتژی و بک‌تست معتبر</span></div>
-          <div className="step"><i>۴</i><span>پیاده‌سازی Paper Trading</span></div>
+          <div className="step done"><i>✓</i><span>اتصال و اسکن زنده بازارهای P2P</span></div>
+          <div className="step current"><i>۳</i><span>موتور سیگنال و استراتژی</span></div>
+          <div className="step"><i>۴</i><span>اجرای خودکار Paper Trading</span></div>
           <div className="step"><i>۵</i><span>آزمون نهایی و آماده‌سازی ویندوز</span></div>
         </div>
       </section>
-      <footer><span>Arzinja Trading Bot · Windows Edition</span><span><Clock3 size={14}/> داده‌های مالی تا اتصال رسمی نمایش داده نمی‌شوند</span></footer>
+      <footer><span>Arzinja Trading Bot · Windows Edition</span><span><Clock3 size={14}/> معاملات واقعی غیرفعال · پایش داده عمومی فعال</span></footer>
     </main>
   </div>;
 }
