@@ -16,12 +16,12 @@ class ArzinjaAPIError(RuntimeError):
 
 
 class ArzinjaClient:
-    """Arzinja API client implementing the documented X-ARZ HMAC headers."""
+    """Arzinja API client. Order methods are restricted to Advance Trade (P2P)."""
 
     def __init__(self, base_url: str | None = None, api_key: str | None = None,
                  api_secret: str | None = None, timeout: int = 15):
         self.base_url = (base_url or os.getenv("ARZINJA_BASE_URL") or
-                         "https://api-v2.arzinja.app/api").rstrip("/")
+                         "https://api-v2.arzinja.ir/api").rstrip("/")
         self.api_key = api_key if api_key is not None else os.getenv("ARZINJA_API_KEY", "")
         self.api_secret = api_secret if api_secret is not None else os.getenv("ARZINJA_API_SECRET", "")
         self.recv_window = int(os.getenv("ARZINJA_RECV_WINDOW_MS", "5000"))
@@ -55,10 +55,9 @@ class ArzinjaClient:
         query_string = urlencode(params)
         body = json.dumps(payload or {}, separators=(",", ":"), ensure_ascii=False) if method in {"POST", "PUT"} else ""
         headers = self._headers(method, query_string, body) if private else {}
-        url = self.base_url + endpoint
         try:
             response = self.session.request(
-                method, url, params=params or None,
+                method, self.base_url + endpoint, params=params or None,
                 data=body if body else None, headers=headers, timeout=self.timeout
             )
             response.raise_for_status()
@@ -75,30 +74,66 @@ class ArzinjaClient:
         return data
 
     def markets(self, page: int = 1, per_page: int = 100) -> dict[str, Any]:
-        return self.request("GET", "/v1/services/market/all-market",
+        # Verified by the user's live PowerShell test on api-v2.arzinja.ir.
+        return self.request("GET", "/v1/market/all-market",
                             params={"page": page, "per_page": per_page, "provider_type": "p2p"})
 
     def all_p2p_markets(self, max_pages: int = 20) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
+        per_page = 100
         for page in range(1, max_pages + 1):
-            response = self.markets(page=page, per_page=100)
+            response = self.markets(page=page, per_page=per_page)
             result = response.get("result", [])
             if isinstance(result, dict):
                 rows = list(result.values())
             elif isinstance(result, list):
                 rows = []
+                # Actual API shape: each array element is { "SYMBOL": { market fields } }.
                 for item in result:
-                    rows.extend(item.values() if isinstance(item, dict) else [])
+                    if isinstance(item, dict):
+                        rows.extend(item.values())
             else:
                 raise ArzinjaAPIError("Unexpected market-list format")
-            items.extend(row for row in rows if isinstance(row, dict))
+            rows = [row for row in rows if isinstance(row, dict)]
+            items.extend(rows)
             pagination = response.get("pagination", {})
-            total_pages = int(pagination.get("total_pages", page)) if isinstance(pagination, dict) else page
-            if page >= total_pages or not rows:
+            total = pagination.get("total") if isinstance(pagination, dict) else None
+            if not rows or len(rows) < per_page or (total is not None and len(items) >= int(total)):
                 break
         return items
 
+    def history(self, *, symbol: str, resolution: int, start: int, end: int,
+                countback: int = 1000, currency_code: str = "IRT") -> dict[str, Any]:
+        if resolution not in {5, 15, 60}:
+            raise ValueError("Supported Arzinja candle resolutions are 5, 15 and 60 minutes")
+        params = {
+            "symbol": symbol, "resolution": resolution, "from": start, "to": end,
+            "countback": countback, "currencyCode": currency_code,
+        }
+        try:
+            response = self.session.get(
+                self.base_url + "/v1/trade/trading-view/history",
+                params=params, timeout=self.timeout
+            )
+            response.raise_for_status()
+            data = response.json()
+        except requests.RequestException as exc:
+            raise ArzinjaAPIError(f"Arzinja history transport error: {exc}") from exc
+        except ValueError as exc:
+            raise ArzinjaAPIError("Arzinja history returned non-JSON data") from exc
+        if not isinstance(data, dict) or data.get("s") != "ok":
+            message = data.get("errmsg", "History request failed") if isinstance(data, dict) else "Invalid history response"
+            raise ArzinjaAPIError(str(message))
+        required = ("t", "o", "h", "l", "c", "v")
+        if any(not isinstance(data.get(key), list) for key in required):
+            raise ArzinjaAPIError("History response is missing OHLCV arrays")
+        lengths = {len(data[key]) for key in required}
+        if len(lengths) != 1:
+            raise ArzinjaAPIError("History OHLCV arrays have inconsistent lengths")
+        return data
+
     def orderbook(self, pair: str, limit: int = 20) -> dict[str, Any]:
+        # This route still needs a live response-shape check against the user's account.
         return self.request("GET", "/v1/services/trade/p2p/orderbook",
                             params={"pair": pair, "limit": limit})
 
@@ -107,7 +142,7 @@ class ArzinjaClient:
 
     def advance_order(self, *, pair: str, side: str, quantity: str,
                       order_type: str = "LIMIT", user_price: float | None = None) -> dict[str, Any]:
-        """The only order route in this client is documented Advance Trade (P2P)."""
+        """Order route is Advance Trade (P2P) only; not used by the current app."""
         if side not in {"BUY", "SELL"} or order_type not in {"LIMIT", "MARKET"}:
             raise ValueError("Invalid side or order type")
         payload: dict[str, Any] = {"pair": pair, "type": order_type, "side": side, "qty": quantity}
