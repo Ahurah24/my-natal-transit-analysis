@@ -33,13 +33,20 @@ class ArzinjaClient:
     def credentials_configured(self) -> bool:
         return bool(self.api_key and self.api_secret)
 
+    @staticmethod
+    def signature_payload(method: str, timestamp: str, api_key: str,
+                          recv_window: int, query_string: str = "", body: str = "") -> str:
+        # Mirrors the official Postman example: timestamp + API key + recvWindow + query/body.
+        if method.upper() == "GET":
+            return timestamp + api_key + str(recv_window) + query_string
+        return timestamp + api_key + str(recv_window) + body
+
     def _headers(self, method: str, query_string: str = "", body: str = "") -> dict[str, str]:
         if not self.credentials_configured:
             raise ArzinjaAPIError("API credentials are not configured")
         timestamp = str(int(time.time() * 1000))
-        prepared = (timestamp + self.api_key + str(self.recv_window) + query_string
-                    if method.upper() == "GET"
-                    else timestamp + self.api_key + str(self.recv_window) + body)
+        prepared = self.signature_payload(method, timestamp, self.api_key,
+                                           self.recv_window, query_string, body)
         signature = hmac.new(self.api_secret.encode(), prepared.encode(), hashlib.sha256).hexdigest()
         return {
             "X-ARZ-API-KEY": self.api_key,
