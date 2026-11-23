@@ -78,7 +78,7 @@ export default function App() {
       </header>
 
       <section className="welcome">
-        <div><span className="pill"><Activity size={14}/> وضعیت سیستم</span><h2>به پنل ربات ارزینجا خوش آمدی</h2><p>زیرساخت ویندوزی آماده راه‌اندازی است. اتصال صرافی و موتور معاملات در مرحله بعد اعتبارسنجی می‌شوند.</p></div>
+        <div><span className="pill"><Activity size={14}/> وضعیت سیستم</span><h2>به پنل ربات ارزینجا خوش آمدی</h2><p>زیرساخت ویندوزی آماده راه‌اندازی است. دریافت فهرست بازار و تاریخچه کندل در حال یکپارچه‌سازی است؛ سفارش واقعی غیرفعال می‌ماند.</p></div>
         <div className="welcome-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="orb-core"><Bot size={36}/></div></div>
       </section>
 
@@ -90,7 +90,7 @@ export default function App() {
       </section>
 
       <section className="panel roadmap">
-        <div className="panel-head"><div><h3><Search size={17}/> اسکن بازارهای بدون کارمزد</h3><p>فقط P2P فعال با پرچم صریح isZeroFee و اسپرد محدود</p></div><button className="icon-btn" onClick={runScan} disabled={scanLoading} title="شروع اسکن">{scanLoading ? "…" : <RefreshCw size={17}/>}</button></div>
+        <div className="panel-head"><div><h3><Search size={17}/> اسکن بازارهای فعال Advanced Trade</h3><p>بازارهای فعال P2P؛ کارمزد Maker/Taker در تنظیمات Advanced Trade صفر است</p></div><button className="icon-btn" onClick={runScan} disabled={scanLoading} title="شروع اسکن">{scanLoading ? "…" : <RefreshCw size={17}/>}</button></div>
         {scanError && <div className="notice"><CircleAlert size={17}/><span>{scanError}</span></div>}
         {scan.length === 0 ? <p className="muted">برای دریافت فهرست، اسکن را اجرا کن. خالی بودن نتیجه به معنی نبود بازار واجد شرایط یا خطای اتصال است.</p> : <div className="status-list">{scan.map((item) => <div key={item.pair}><span><b>{item.pair}</b> · اسپرد {item.spread_percent}%</span><b className="ok">عمق {Number(item.liquidity_score).toLocaleString("en-US")}</b></div>)}</div>}
       </section>
@@ -114,7 +114,7 @@ export default function App() {
       </section>
 
       <section className="panel roadmap">
-        <div className="panel-head"><div><h3>مراحل آماده‌سازی</h3><p>مسیر توسعه نسخه ویندوز</p></div><span className="step-count">مرحله ۱ از ۵</span></div>
+        <div className="panel-head"><div><h3>مراحل آماده‌سازی</h3><p>مسیر توسعه نسخه ویندوز</p></div><span className="step-count">مرحله ۲ از ۵</span></div>
         <div className="steps">
           <div className="step done"><i>✓</i><span>ساختار وب و API محلی</span></div>
           <div className="step current"><i>۲</i><span>یکپارچه‌سازی API ارزینجا</span></div>
