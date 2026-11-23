@@ -12,7 +12,7 @@ def eligible_active_p2p_markets(markets: list[dict[str, Any]]) -> list[dict[str,
     output = []
     for market in markets:
         pair = market.get("pair")
-        if not pair:
+        if not isinstance(pair, str) or not pair.strip().upper().endswith("IRT"):
             continue
         if not _active_flag(market.get("buyStatus")) or not _active_flag(market.get("sellStatus")):
             continue
