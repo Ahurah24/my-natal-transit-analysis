@@ -9,3 +9,7 @@ backend/.pytest_cache/
 frontend/node_modules/
 frontend/dist/
 data/
+
+# Local market history and trained ML artifacts
+backend/data/
+backend/models/
