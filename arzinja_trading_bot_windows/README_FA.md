@@ -7,9 +7,11 @@
 - در پوشه پروژه PowerShell را باز کن و در صورت نیاز فقط برای همین نشست اجرا کن:
   `Set-ExecutionPolicy -Scope Process Bypass`
 - نصب: `./install_windows.ps1`
-- اجرا: `start_windows.bat`
+- اجرای کامل (Backend + Dashboard): `start_windows.bat`
+- اجرای جداگانه Backend: `start_backend.bat` (برای زمانی که داشبورد از قبل باز است یا Backend متوقف شده)
 - داشبورد: http://127.0.0.1:5173
 - API: http://127.0.0.1:8000/docs
+- پنجره Backend را باز نگه دار؛ برای توقف سرویس از `Ctrl+C` در همان پنجره استفاده کن.
 
 ## تنظیم API و محدودیت سرویس
 1. کلیدهایی را که قبلاً در چت افشا شده‌اند در پنل ارزینجا باطل کن.
