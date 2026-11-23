@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowDownUp, Bot, ChartNoAxesCombined, CircleAlert, Clock3, Gauge, LayoutDashboard, LockKeyhole, RefreshCw, Settings2, ShieldCheck, Wallet } from "lucide-react";
+import { Activity, ArrowDownUp, Bot, ChartNoAxesCombined, CircleAlert, Clock3, Gauge, LayoutDashboard, LockKeyhole, RefreshCw, Settings2, ShieldCheck, Wallet, Search } from "lucide-react";
 
 const API = "http://127.0.0.1:8000";
 
@@ -14,6 +14,9 @@ export default function App() {
   const [status, setStatus] = useState(null);
   const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState("—");
+  const [scan, setScan] = useState([]);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState("");
 
   useEffect(() => {
     let socket;
@@ -36,6 +39,17 @@ export default function App() {
     connect();
     return () => { alive = false; clearTimeout(retry); socket?.close(); };
   }, []);
+
+  const runScan = async () => {
+    setScanLoading(true); setScanError("");
+    try {
+      const response = await fetch(`${API}/api/exchange/scan?max_markets=40&max_spread_percent=0.8`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "خطا در دریافت بازارها");
+      setScan(data.results || []);
+    } catch (error) { setScanError(error.message); }
+    finally { setScanLoading(false); }
+  };
 
   const refresh = async () => {
     try {
@@ -64,7 +78,7 @@ export default function App() {
       </header>
 
       <section className="welcome">
-        <div><span className="pill"><Activity size={14}/> وضعیت سیستم</span><h2>به پنل ربات ارزینجا خوش آمدی</h2><p>زیرساخت ویندوزی آماده راه‌اندازی است. اتصال صرافی و موتور معاملات در مرحله بعد اعتبارسنجی می‌شوند.</p></div>
+        <div><span className="pill"><Activity size={14}/> وضعیت سیستم</span><h2>به پنل ربات ارزینجا خوش آمدی</h2><p>زیرساخت ویندوزی آماده راه‌اندازی است. دریافت بازار و تاریخچه کندل به API محلی متصل شده؛ اعتبارسنجی زنده دفتر سفارش و احراز هویت خصوصی باقی مانده است.</p></div>
         <div className="welcome-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="orb-core"><Bot size={36}/></div></div>
       </section>
 
@@ -73,6 +87,12 @@ export default function App() {
         <Metric icon={ChartNoAxesCombined} label="سود و زیان امروز" value="—" hint="هنوز معامله‌ای ثبت نشده" />
         <Metric icon={ArrowDownUp} label="معاملات فعال" value="۰" hint="اجرای واقعی غیرفعال است" />
         <Metric icon={Gauge} label="وضعیت استراتژی" value="متوقف" hint="منتظر اتصال داده بازار" />
+      </section>
+
+      <section className="panel roadmap">
+        <div className="panel-head"><div><h3><Search size={17}/> اسکن بازارهای فعال Advanced Trade</h3><p>بازارهای فعال P2P؛ کارمزد Maker/Taker در تنظیمات Advanced Trade صفر است</p></div><button className="icon-btn" onClick={runScan} disabled={scanLoading} title="شروع اسکن">{scanLoading ? "…" : <RefreshCw size={17}/>}</button></div>
+        {scanError && <div className="notice"><CircleAlert size={17}/><span>{scanError}</span></div>}
+        {scan.length === 0 ? <p className="muted">برای دریافت فهرست، اسکن را اجرا کن. خالی بودن نتیجه به معنی نبود بازار واجد شرایط یا خطای اتصال است.</p> : <div className="status-list">{scan.map((item) => <div key={item.pair}><span><b>{item.pair}</b> · اسپرد {item.spread_percent}%</span><b className="ok">عمق {Number(item.liquidity_score).toLocaleString("en-US")}</b></div>)}</div>}
       </section>
 
       <section className="grid-two">
@@ -94,7 +114,7 @@ export default function App() {
       </section>
 
       <section className="panel roadmap">
-        <div className="panel-head"><div><h3>مراحل آماده‌سازی</h3><p>مسیر توسعه نسخه ویندوز</p></div><span className="step-count">مرحله ۱ از ۵</span></div>
+        <div className="panel-head"><div><h3>مراحل آماده‌سازی</h3><p>مسیر توسعه نسخه ویندوز</p></div><span className="step-count">مرحله ۲ از ۵</span></div>
         <div className="steps">
           <div className="step done"><i>✓</i><span>ساختار وب و API محلی</span></div>
           <div className="step current"><i>۲</i><span>یکپارچه‌سازی API ارزینجا</span></div>
