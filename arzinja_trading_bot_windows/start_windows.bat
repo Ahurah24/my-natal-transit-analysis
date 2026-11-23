@@ -11,7 +11,7 @@ if not exist "frontend\node_modules" (
   pause
   exit /b 1
 )
-start "Arzinja API" cmd /k ""%CD%\.venv\Scripts\python.exe" -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000"
+start "Arzinja API" cmd /k "cd /d ""%CD%\backend"" && ""%CD%\.venv\Scripts\python.exe"" -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
 timeout /t 2 /nobreak >nul
 start "Arzinja Dashboard" cmd /k "cd /d ""%CD%\frontend"" && npm run dev"
 timeout /t 3 /nobreak >nul
