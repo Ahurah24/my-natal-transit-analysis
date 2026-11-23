@@ -3,21 +3,25 @@ from __future__ import annotations
 from typing import Any
 
 
-def _truthy_flag(value: Any) -> bool:
+def _active_flag(value: Any) -> bool:
     return value is True or value == 1 or str(value).lower() in {"1", "true", "yes"}
 
 
-def eligible_zero_fee_markets(markets: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Fail closed: only explicit zero-fee P2P markets with active buy/sell are returned."""
+def eligible_active_p2p_markets(markets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return markets with both P2P sides enabled; isZeroFee is not an account fee tier."""
     output = []
     for market in markets:
         pair = market.get("pair")
-        if not pair or not _truthy_flag(market.get("isZeroFee")):
+        if not pair:
             continue
-        if not _truthy_flag(market.get("buyStatus")) or not _truthy_flag(market.get("sellStatus")):
+        if not _active_flag(market.get("buyStatus")) or not _active_flag(market.get("sellStatus")):
             continue
         output.append(market)
     return output
+
+
+# Backwards-compatible import name; no longer filters by isZeroFee.
+eligible_zero_fee_markets = eligible_active_p2p_markets
 
 
 def score_orderbook(pair: str, market: dict[str, Any], book: dict[str, Any]) -> dict[str, Any]:
@@ -34,7 +38,7 @@ def score_orderbook(pair: str, market: dict[str, Any], book: dict[str, Any]) -> 
     ask_depth = sum(float(level[0]) * float(level[1]) for level in asks[:5])
     depth = min(bid_depth, ask_depth)
     return {
-        "pair": pair, "eligible": True, "is_zero_fee": True,
+        "pair": pair, "eligible": True,
         "best_bid": best_bid, "best_ask": best_ask, "mid_price": mid,
         "spread_percent": round(spread_pct, 5),
         "top5_bid_quote_depth": round(bid_depth, 4),
@@ -42,14 +46,12 @@ def score_orderbook(pair: str, market: dict[str, Any], book: dict[str, Any]) -> 
         "min_notional": market.get("minNotional"),
         "max_notional": market.get("maxNotional"),
         "min_qty": market.get("minQty"), "max_qty": market.get("maxQty"),
-        "base_precision": market.get("baseAssetPrecision"),
-        "quote_precision": market.get("quotePrecision"),
         "liquidity_score": round(depth / (1 + spread_pct), 4),
     }
 
 
 def scan_markets(client: Any, *, max_markets: int = 40, max_spread_percent: float = 0.8) -> list[dict[str, Any]]:
-    markets = eligible_zero_fee_markets(client.all_p2p_markets())
+    markets = eligible_active_p2p_markets(client.all_p2p_markets())
     ranked = []
     for market in markets[:max_markets]:
         pair = str(market["pair"])
