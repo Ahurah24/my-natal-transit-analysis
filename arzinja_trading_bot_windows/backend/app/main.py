@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -11,18 +12,23 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.exchange.arzinja import ArzinjaClient, ArzinjaAPIError
-from app.services.market_scanner import scan_markets, eligible_zero_fee_markets
+from app.services.market_scanner import scan_markets, eligible_active_p2p_markets
 from app.services.paper_ledger import PaperLedger
 
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
 
 APP_NAME = "Arzinja Trading Bot - Windows"
-TRADING_MODE = "paper"  # hard-locked until a separately reviewed live executor exists
-LIVE_TRADING_ENABLED = os.getenv("LIVE_TRADING_ENABLED", "false").lower() == "true"
-ARM_LIVE_TRADING = os.getenv("ARM_LIVE_TRADING", "false").lower() == "true"
+TRADING_MODE = "paper"
+LIVE_TRADING_ENABLED = False
+ARM_LIVE_TRADING = False
 
-app = FastAPI(title=APP_NAME, version="0.2.0")
+# Applies only to Arzinja Advanced Trade (P2P), per the user's account and official fee page.
+# Spread and slippage remain trading costs in simulations.
+ADVANCED_TRADE_MAKER_FEE = 0.0
+ADVANCED_TRADE_TAKER_FEE = 0.0
+
+app = FastAPI(title=APP_NAME, version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
@@ -38,19 +44,14 @@ ledger = PaperLedger(ROOT / "backend" / "data" / "paper_trading.sqlite3")
 
 def runtime_status() -> dict[str, Any]:
     return {
-        "app": APP_NAME,
-        "status": "ready",
-        "mode": TRADING_MODE,
-        "live_trading_enabled": False,
-        "live_execution_supported": False,
+        "app": APP_NAME, "status": "ready", "mode": TRADING_MODE,
+        "live_trading_enabled": False, "live_execution_supported": False,
         "exchange_credentials_configured": client.credentials_configured,
-        "exchange_connected": False,
-        "market_data": "not_connected",
-        "strategy": "not_started",
-        "paper_ledger": ledger.summary(),
+        "exchange_connected": False, "market_data": "not_connected",
+        "strategy": "not_started", "paper_ledger": ledger.summary(),
         "started_at": _started_at.isoformat(),
         "server_time": datetime.now(timezone.utc).isoformat(),
-        "notice": "اتصال فقط‌خواندنی قابل آزمایش است؛ اجرای سفارش واقعی عمداً در این نسخه فعال نشده است.",
+        "notice": "داده عمومی بازار قابل آزمایش است؛ سفارش واقعی عمداً غیرفعال است.",
     }
 
 
@@ -67,13 +68,14 @@ def status() -> dict[str, Any]:
 @app.get("/api/config")
 def public_config() -> dict[str, Any]:
     return {
-        "default_mode": "paper",
-        "live_trading_enabled": False,
-        "supported_quote_currencies": ["IRT", "USDT"],
-        "default_timeframe": "15m",
-        "zero_fee_only": True,
-        "advanced_trade_endpoint_only": True,
-        "historical_candles_available_from_exchange_docs": False,
+        "default_mode": "paper", "live_trading_enabled": False,
+        "supported_quote_currencies": ["IRT", "USDT"], "default_timeframe": "15m",
+        "market_provider": "p2p", "trading_service": "advanced_trade",
+        "advanced_trade_fee": {"maker": ADVANCED_TRADE_MAKER_FEE,
+                               "taker": ADVANCED_TRADE_TAKER_FEE, "unit": "fraction"},
+        "isZeroFee_market_flag_used_for_account_fee": False,
+        "supported_candle_resolutions_minutes": [5, 15, 60],
+        "historical_candles_available_from_exchange": True,
     }
 
 
@@ -81,9 +83,10 @@ def public_config() -> dict[str, Any]:
 def exchange_markets() -> dict[str, Any]:
     try:
         markets = client.all_p2p_markets()
-        eligible = eligible_zero_fee_markets(markets)
-        return {"total_p2p_markets": len(markets), "zero_fee_active_markets": len(eligible),
-                "markets": eligible}
+        eligible = eligible_active_p2p_markets(markets)
+        return {"total_p2p_markets": len(markets), "active_p2p_markets": len(eligible),
+                "markets": eligible, "advanced_trade_maker_fee": 0,
+                "advanced_trade_taker_fee": 0}
     except ArzinjaAPIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -96,9 +99,40 @@ def exchange_scan(max_markets: int = 40, max_spread_percent: float = 0.8) -> dic
         results = scan_markets(client, max_markets=max_markets,
                                max_spread_percent=max_spread_percent)
         return {"count": len(results), "results": results,
-                "notice": "فقط بازارهای فعال P2P با پرچم صریح isZeroFee بررسی شده‌اند."}
+                "notice": "بازارهای فعال P2P با اسپرد و عمق دفتر سفارش بررسی شده‌اند."}
     except ArzinjaAPIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/api/exchange/history")
+def exchange_history(symbol: str, resolution: int = 15, days: int = 7,
+                     currency_code: str = "IRT", countback: int = 10000) -> dict[str, Any]:
+    if not symbol.endswith(("IRT", "USDT")) or not 1 <= days <= 30:
+        raise HTTPException(status_code=422, detail="Invalid symbol or days")
+    if resolution not in {5, 15, 60} or not 100 <= countback <= 10000:
+        raise HTTPException(status_code=422, detail="Unsupported resolution or countback")
+    now = int(time.time())
+    try:
+        raw = client.history(symbol=symbol, resolution=resolution,
+                             start=now - days * 86400, end=now,
+                             countback=countback, currency_code=currency_code)
+    except (ArzinjaAPIError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    candles = []
+    for i, timestamp in enumerate(raw["t"]):
+        candle = {"time": int(timestamp), "open": float(raw["o"][i]),
+                  "high": float(raw["h"][i]), "low": float(raw["l"][i]),
+                  "close": float(raw["c"][i]), "volume": float(raw["v"][i])}
+        if (candle["low"] <= 0 or candle["high"] < max(candle["open"], candle["close"])
+                or candle["low"] > min(candle["open"], candle["close"]) or candle["volume"] < 0):
+            raise HTTPException(status_code=502, detail=f"Invalid OHLCV candle at index {i}")
+        if candles and candle["time"] <= candles[-1]["time"]:
+            raise HTTPException(status_code=502, detail="Candle timestamps are not strictly increasing")
+        candles.append(candle)
+    return {"symbol": symbol, "resolution_minutes": resolution,
+            "currency_code": currency_code, "count": len(candles),
+            "candles": candles, "source": "Arzinja TradingView history",
+            "note": "آخرین کندل ممکن است هنوز باز باشد؛ در محاسبات استراتژی فقط کندل بسته‌شده استفاده شود."}
 
 
 @app.get("/api/exchange/balances")
