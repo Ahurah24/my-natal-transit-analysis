@@ -10,13 +10,11 @@ from .trainer import load_market_model
 
 
 def score_market(candles: pd.DataFrame, model_artifact: dict[str, Any], *, market: str,
-                 is_zero_fee: bool, market_is_active: bool,
+                 is_zero_fee: bool | None = None, market_is_active: bool,
                  minimum_probability: float = 0.62) -> dict[str, Any]:
-    """Rank-only decision. It never creates or submits an exchange order."""
+    """Rank-only decision. is_zero_fee is ignored: the market metadata flag is not the account fee tier."""
     if not 0.5 < minimum_probability < 1:
         raise ValueError("minimum_probability must be between 0.5 and 1")
-    if not is_zero_fee:
-        return {"market": market, "eligible": False, "reason": "zero-fee flag is not confirmed"}
     if not market_is_active:
         return {"market": market, "eligible": False, "reason": "market is inactive"}
     if model_artifact.get("market") != market:
