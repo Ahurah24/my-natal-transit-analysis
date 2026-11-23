@@ -78,7 +78,7 @@ export default function App() {
       </header>
 
       <section className="welcome">
-        <div><span className="pill"><Activity size={14}/> وضعیت سیستم</span><h2>به پنل ربات ارزینجا خوش آمدی</h2><p>زیرساخت ویندوزی آماده راه‌اندازی است. دریافت فهرست بازار و تاریخچه کندل در حال یکپارچه‌سازی است؛ سفارش واقعی غیرفعال می‌ماند.</p></div>
+        <div><span className="pill"><Activity size={14}/> وضعیت سیستم</span><h2>به پنل ربات ارزینجا خوش آمدی</h2><p>زیرساخت ویندوزی آماده راه‌اندازی است. دریافت بازار و تاریخچه کندل به API محلی متصل شده؛ اعتبارسنجی زنده دفتر سفارش و احراز هویت خصوصی باقی مانده است.</p></div>
         <div className="welcome-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="orb-core"><Bot size={36}/></div></div>
       </section>
 
