@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
 
 APP_NAME = "Arzinja Trading Bot - Windows"
-TRADING_MODE = os.getenv("TRADING_MODE", "paper").lower()
+TRADING_MODE = "paper"  # hard-locked until a separately reviewed live executor exists
 LIVE_TRADING_ENABLED = os.getenv("LIVE_TRADING_ENABLED", "false").lower() == "true"
 ARM_LIVE_TRADING = os.getenv("ARM_LIVE_TRADING", "false").lower() == "true"
 
@@ -41,7 +41,7 @@ def runtime_status() -> dict[str, Any]:
         "app": APP_NAME,
         "status": "ready",
         "mode": TRADING_MODE,
-        "live_trading_enabled": LIVE_TRADING_ENABLED and ARM_LIVE_TRADING,
+        "live_trading_enabled": False,
         "live_execution_supported": False,
         "exchange_credentials_configured": client.credentials_configured,
         "exchange_connected": False,
